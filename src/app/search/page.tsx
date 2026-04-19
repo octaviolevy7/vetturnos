@@ -64,7 +64,8 @@ function SearchContent() {
 
   useEffect(() => {
     search({ city, date, specialtyId });
-  }, []); // Initial load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentional: only run on mount
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
