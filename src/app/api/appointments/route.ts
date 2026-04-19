@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAppointmentSchema } from "@/lib/validations/appointment";
-import type { Prisma } from "@/generated/prisma/internal/prismaNamespace";
+import type { PrismaClient } from "@/generated/prisma/client";
+type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
 
 export async function GET() {
   const session = await auth();
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
   const { clinicId, slotId, petId, reason } = body.data;
 
   try {
-    const appointment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const appointment = await prisma.$transaction(async (tx: TransactionClient) => {
       const slot = await tx.availabilitySlot.findUnique({ where: { id: slotId } });
 
       if (!slot || slot.isBooked || slot.isBlocked || slot.clinicId !== clinicId) {

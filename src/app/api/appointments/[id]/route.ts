@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateAppointmentSchema } from "@/lib/validations/appointment";
-import type { Prisma } from "@/generated/prisma/internal/prismaNamespace";
+import type { PrismaClient } from "@/generated/prisma/client";
+type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -33,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Los dueños solo pueden cancelar" }, { status: 403 });
   }
 
-  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const updated = await prisma.$transaction(async (tx: TransactionClient) => {
     if (status === "CANCELLED") {
       await tx.availabilitySlot.update({
         where: { id: appointment.slotId },
