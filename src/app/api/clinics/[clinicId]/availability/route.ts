@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { scheduleSchema } from "@/lib/validations/clinic";
 import { generateSlots } from "@/lib/utils/slots";
-import type { Prisma } from "@/generated/prisma/internal/prismaNamespace";
+import type { PrismaClient } from "@/generated/prisma/client";
+type TransactionClient = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
 
 export async function GET(req: Request, { params }: { params: Promise<{ clinicId: string }> }) {
   const { clinicId } = await params;
@@ -48,7 +49,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ clinicI
     return NextResponse.json({ error: body.error.format() }, { status: 400 });
   }
 
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  await prisma.$transaction(async (tx: TransactionClient) => {
     for (const s of body.data.schedules) {
       await tx.availabilitySchedule.upsert({
         where: { clinicId_dayOfWeek: { clinicId, dayOfWeek: s.dayOfWeek } },
