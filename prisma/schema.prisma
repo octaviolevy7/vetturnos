@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────
+
+enum Role {
+  PET_OWNER
+  VETERINARIAN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ─── User ─────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  role         Role
+  avatarUrl    String?
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  pets          Pet[]
+  clinic        Clinic?
+  appointments  Appointment[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// NextAuth required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Clinic ───────────────────────────────────────────────────
+
+model Clinic {
+  id          String   @id @default(cuid())
+  vetId       String   @unique
+  name        String
+  description String?
+  address     String
+  city        String
+  state       String
+  zipCode     String
+  lat         Float?
+  lng         Float?
+  phone       String?
+  website     String?
+  logoUrl     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vet          User                   @relation(fields: [vetId], references: [id])
+  specialties  ClinicSpecialty[]
+  schedules    AvailabilitySchedule[]
+  slots        AvailabilitySlot[]
+  appointments Appointment[]
+
+  @@index([city])
+  @@index([lat, lng])
+}
+
+model Specialty {
+  id      String            @id @default(cuid())
+  name    String            @unique
+  clinics ClinicSpecialty[]
+}
+
+model ClinicSpecialty {
+  clinicId    String
+  specialtyId String
+
+  clinic    Clinic    @relation(fields: [clinicId], references: [id])
+  specialty Specialty @relation(fields: [specialtyId], references: [id])
+
+  @@id([clinicId, specialtyId])
+}
+
+// ─── Availability ─────────────────────────────────────────────
+
+model AvailabilitySchedule {
+  id          String  @id @default(cuid())
+  clinicId    String
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  slotMinutes Int     @default(30)
+  isActive    Boolean @default(true)
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+
+  @@unique([clinicId, dayOfWeek])
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  clinicId  String
+  startsAt  DateTime
+  endsAt    DateTime
+  isBooked  Boolean  @default(false)
+  isBlocked Boolean  @default(false)
+
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+  appointment Appointment?
+
+  @@unique([clinicId, startsAt])
+  @@index([clinicId, startsAt])
+  @@index([isBooked, startsAt])
+}
+
+// ─── Appointment ──────────────────────────────────────────────
+
+model Appointment {
+  id        String            @id @default(cuid())
+  clinicId  String
+  ownerId   String
+  petId     String?
+  slotId    String            @unique
+  status    AppointmentStatus @default(PENDING)
+  reason    String?
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  clinic Clinic           @relation(fields: [clinicId], references: [id])
+  owner  User             @relation(fields: [ownerId], references: [id])
+  pet    Pet?             @relation(fields: [petId], references: [id])
+  slot   AvailabilitySlot @relation(fields: [slotId], references: [id])
+
+  @@index([ownerId])
+  @@index([clinicId, status])
+}
+
+// ─── Pet (non-MVP, schema listo) ──────────────────────────────
+
+model Pet {
+  id           String    @id @default(cuid())
+  ownerId      String
+  name         String
+  species      String
+  breed        String?
+  dateOfBirth  DateTime?
+  weightKg     Float?
+  avatarUrl    String?
+  medicalNotes String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  owner        User          @relation(fields: [ownerId], references: [id])
+  appointments Appointment[]
+
+  @@index([ownerId])
+}
+
+// ─── Notification (non-MVP, schema listo) ─────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+}

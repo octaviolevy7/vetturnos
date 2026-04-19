@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(pkill -f \"next dev\")",
+      "Read(//private/tmp/**)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}
