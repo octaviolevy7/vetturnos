@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
+import { LogoFull } from "@/components/ui/Logo";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -11,8 +12,8 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" className="text-xl font-bold text-teal-600">
-          VetTurnos
+        <Link href="/">
+          <LogoFull size={30} />
         </Link>
 
         <div className="flex items-center gap-3">

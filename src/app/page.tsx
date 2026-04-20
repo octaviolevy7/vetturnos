@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Navbar } from "@/components/auth/Navbar";
+import { LogoMark } from "@/components/ui/Logo";
 
 export default function LandingPage() {
   return (
@@ -9,6 +10,9 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-teal-600 to-teal-800 px-4 py-24 text-white sm:px-6">
         <div className="mx-auto max-w-3xl text-center space-y-6">
+          <div className="flex justify-center">
+            <LogoMark size={80} variant="light" />
+          </div>
           <h1 className="text-4xl font-bold leading-tight sm:text-5xl">
             Turnos veterinarios<br />en minutos
           </h1>
