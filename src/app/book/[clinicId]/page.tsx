@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/auth/Navbar";
 import { track } from "@/lib/amplitude";
+import { CSATModal } from "@/components/ui/CSATModal";
 
 type Slot = { id: string; startsAt: string; endsAt: string; isBooked: boolean; isBlocked: boolean };
 
@@ -28,6 +29,7 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState("");
+  const [showCSAT, setShowCSAT] = useState(false);
 
   useEffect(() => {
     fetch(`/api/clinics/${initialClinicId}`)
@@ -86,13 +88,14 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
     }
 
     track("booking_completed", { clinic_id: clinicId, clinic_name: clinicName, date: selectedDate, time: formatTime(selectedSlot.startsAt), has_reason: reason.trim().length > 0 });
-    router.push("/appointments?booked=1");
+    setShowCSAT(true);
   };
 
   const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showCSAT && <CSATModal onClose={() => router.push("/appointments?booked=1")} />}
       <Navbar />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 space-y-6">
         <div>
