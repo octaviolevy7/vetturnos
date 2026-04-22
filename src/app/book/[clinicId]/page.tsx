@@ -8,6 +8,10 @@ import { track } from "@/lib/amplitude";
 import { CSATModal } from "@/components/ui/CSATModal";
 
 type Slot = { id: string; startsAt: string; endsAt: string; isBooked: boolean; isBlocked: boolean };
+type Pet = { id: string; name: string; species: string };
+
+const SPECIES = ["Perro", "Gato", "Ave", "Conejo", "Otro"];
+const SIZES = ["Pequeño", "Mediano", "Grande"];
 
 type Step = "date" | "slot" | "confirm";
 
@@ -30,6 +34,11 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState("");
   const [showCSAT, setShowCSAT] = useState(false);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState("");
+  const [newPetName, setNewPetName] = useState("");
+  const [newPetSpecies, setNewPetSpecies] = useState("");
+  const [newPetSize, setNewPetSize] = useState("");
 
   useEffect(() => {
     fetch(`/api/clinics/${initialClinicId}`)
@@ -39,6 +48,14 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
         track("booking_started", { clinic_id: initialClinicId, clinic_name: c.name });
       });
   }, [initialClinicId]);
+
+  useEffect(() => {
+    if (step === "confirm") {
+      fetch("/api/users/me/pets").then((r) => r.json()).then((data) => {
+        if (Array.isArray(data)) setPets(data);
+      });
+    }
+  }, [step]);
 
   useEffect(() => {
     if (selectedDate && clinicId) {
@@ -66,10 +83,21 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
     if (!selectedSlot) return;
     setBooking(true);
     setError("");
+    let petId: string | undefined = selectedPetId || undefined;
+    if (!petId && newPetName && newPetSpecies) {
+      const petRes = await fetch("/api/users/me/pets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newPetName, species: newPetSpecies, size: newPetSize || undefined }),
+      });
+      if (petRes.ok) petId = (await petRes.json()).id;
+    }
+
+
     const res = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicId, slotId: selectedSlot.id, reason }),
+      body: JSON.stringify({ clinicId, slotId: selectedSlot.id, reason, petId }),
     });
 
     if (res.status === 409) {
@@ -178,6 +206,59 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
               <p><span className="text-gray-500">Clínica:</span> <strong>{clinicName}</strong></p>
               <p><span className="text-gray-500">Fecha:</span> <strong>{formatDate(selectedDate)}</strong></p>
               <p><span className="text-gray-500">Horario:</span> <strong>{formatTime(selectedSlot.startsAt)} – {formatTime(selectedSlot.endsAt)}</strong></p>
+            </div>
+
+            {/* Pet selection */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Mascota (opcional)</label>
+              {pets.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {pets.map((pet) => (
+                    <button
+                      key={pet.id}
+                      type="button"
+                      onClick={() => setSelectedPetId(selectedPetId === pet.id ? "" : pet.id)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${selectedPetId === pet.id ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-600 hover:border-teal-300"}`}
+                    >
+                      {pet.name} <span className="text-gray-400">· {pet.species}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedPetId(""); setNewPetName(""); setNewPetSpecies(""); }}
+                    className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${!selectedPetId && (newPetName || newPetSpecies) ? "border-teal-500 bg-teal-50 text-teal-700" : "border-dashed border-gray-300 text-gray-400 hover:border-teal-300"}`}
+                  >
+                    + Otra mascota
+                  </button>
+                </div>
+              )}
+              {(!selectedPetId) && (
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    value={newPetName}
+                    onChange={(e) => setNewPetName(e.target.value)}
+                    placeholder="Nombre"
+                    className="flex-1 min-w-[100px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <select
+                    value={newPetSpecies}
+                    onChange={(e) => setNewPetSpecies(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="">Tipo</option>
+                    {SPECIES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <select
+                    value={newPetSize}
+                    onChange={(e) => setNewPetSize(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="">Tamaño</option>
+                    {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1">
