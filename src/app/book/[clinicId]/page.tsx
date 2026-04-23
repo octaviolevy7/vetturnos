@@ -8,7 +8,7 @@ import { track } from "@/lib/amplitude";
 import { CSATModal } from "@/components/ui/CSATModal";
 
 type Slot = { id: string; startsAt: string; endsAt: string; isBooked: boolean; isBlocked: boolean };
-type Pet = { id: string; name: string; species: string };
+type Pet = { id: string; name: string; species: string; medicalNotes?: string };
 
 const SPECIES = ["Perro", "Gato", "Ave", "Conejo", "Otro"];
 const SIZES = ["Pequeño", "Mediano", "Grande"];
@@ -39,6 +39,7 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
   const [newPetName, setNewPetName] = useState("");
   const [newPetSpecies, setNewPetSpecies] = useState("");
   const [newPetSize, setNewPetSize] = useState("");
+  const [allergies, setAllergies] = useState("");
 
   useEffect(() => {
     fetch(`/api/clinics/${initialClinicId}`)
@@ -84,11 +85,18 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
     setBooking(true);
     setError("");
     let petId: string | undefined = selectedPetId || undefined;
+    if (petId && allergies.trim()) {
+      await fetch(`/api/users/me/pets/${petId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ medicalNotes: allergies }),
+      });
+    }
     if (!petId && newPetName && newPetSpecies) {
       const petRes = await fetch("/api/users/me/pets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newPetName, species: newPetSpecies, size: newPetSize || undefined }),
+        body: JSON.stringify({ name: newPetName, species: newPetSpecies, size: newPetSize || undefined, medicalNotes: allergies || undefined }),
       });
       if (petRes.ok) petId = (await petRes.json()).id;
     }
@@ -217,7 +225,11 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
                     <button
                       key={pet.id}
                       type="button"
-                      onClick={() => setSelectedPetId(selectedPetId === pet.id ? "" : pet.id)}
+                      onClick={() => {
+                        const next = selectedPetId === pet.id ? "" : pet.id;
+                        setSelectedPetId(next);
+                        setAllergies(next ? (pet.medicalNotes ?? "") : "");
+                      }}
                       className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${selectedPetId === pet.id ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-600 hover:border-teal-300"}`}
                     >
                       {pet.name} <span className="text-gray-400">· {pet.species}</span>
@@ -260,6 +272,19 @@ function BookingContent({ clinicId: initialClinicId }: { clinicId: string }) {
                 </div>
               )}
             </div>
+
+            {(selectedPetId || (!selectedPetId && (newPetName || newPetSpecies))) && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Alergias conocidas (opcional)</label>
+                <textarea
+                  value={allergies}
+                  onChange={(e) => setAllergies(e.target.value)}
+                  rows={2}
+                  placeholder="Ej: penicilina, antiinflamatorios..."
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
+            )}
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Motivo de la consulta (opcional)</label>

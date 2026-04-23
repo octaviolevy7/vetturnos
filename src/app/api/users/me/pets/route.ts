@@ -11,6 +11,7 @@ const petSchema = z.object({
   breed: z.string().optional(),
   dateOfBirth: z.string().optional(),
   weightKg: z.number().optional(),
+  medicalNotes: z.string().optional(),
 });
 
 export async function GET() {
