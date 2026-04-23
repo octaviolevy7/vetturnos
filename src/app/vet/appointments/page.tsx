@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { track } from "@/lib/amplitude";
+import { CSATModal } from "@/components/ui/CSATModal";
 
 type Appointment = {
   id: string;
@@ -18,6 +19,7 @@ export default function VetAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
+  const [showCSAT, setShowCSAT] = useState(false);
 
   useEffect(() => {
     fetch("/api/appointments")
@@ -39,7 +41,7 @@ export default function VetAppointmentsPage() {
       const updated = await res.json();
       if (appt) {
         const daysUntil = Math.round((new Date(appt.slot.startsAt).getTime() - Date.now()) / 86400000);
-        if (status === "CONFIRMED") track("appointment_confirmed", { days_until_appointment: daysUntil });
+        if (status === "CONFIRMED") { track("appointment_confirmed", { days_until_appointment: daysUntil }); setShowCSAT(true); }
         if (status === "CANCELLED") track("appointment_rejected", { days_until_appointment: daysUntil });
         if (status === "COMPLETED") track("appointment_completed");
       }
@@ -62,6 +64,7 @@ export default function VetAppointmentsPage() {
 
   return (
     <div className="space-y-6">
+      {showCSAT && <CSATModal eventName="vet_appointment_csat_submitted" onClose={() => setShowCSAT(false)} />}
       <h1 className="text-2xl font-bold text-gray-900">Turnos</h1>
 
       <div className="flex flex-wrap gap-2">

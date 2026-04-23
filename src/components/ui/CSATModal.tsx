@@ -11,13 +11,13 @@ const LABELS: Record<number, string> = {
   5: "Excelente",
 };
 
-export function CSATModal({ onClose }: { onClose: () => void }) {
+export function CSATModal({ onClose, eventName = "booking_csat_submitted" }: { onClose: () => void; eventName?: string }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = () => {
     if (!selected) return;
-    track("booking_csat_submitted", { rating: selected });
+    track(eventName, { rating: selected });
     setSubmitted(true);
     setTimeout(onClose, 1500);
   };
